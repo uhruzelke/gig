@@ -65,6 +65,14 @@ pub struct  GigSelectionScope{
     need_one_of_each_a:Option<Vec<Vec<String>>>
 }
 
+
+impl GigSelectionScope {
+    pub fn new_empty() -> Self{
+        GigSelectionScope { order:None, filter: None, need_a: None, exclude_a: None, need_one_of_each_a: None }
+    } 
+    
+}
+
 // a gig environment by default holds one gig list and nothing else, however it can hold a array of gig environment extras, which will be applied and used accordingly.
 // it handles saving and loading
 pub struct GigEnvironment{
@@ -82,6 +90,20 @@ impl Gig {
     }
     pub fn change_status(&mut self, new_status:GigStatus){
         self.status = new_status
+    }
+    pub fn minimal_gig_from_string(mut string:String)-> Self{ //- [ ]
+        let status_symbol = string.clone().chars().nth(3).unwrap_or(' ');
+        let s:GigStatus = match status_symbol {
+            'X' => GigStatus::DONE,
+            ' ' => GigStatus::TODO,
+            S => GigStatus::CUSTOM(S.to_string())
+            
+        };
+        let ling = string.split_off(5);
+
+
+
+        Gig { name: ling, description: "".to_string(), status: s, duration: 0, due_date: 0, attributes: vec![] }
     }
     pub fn compare_with_filter_gig(&self, filter:Option<Gig>, need_a:Option<Vec<String>>, exclude_a:Option<Vec<String>>, need_one_of_each_a:Option<Vec<Vec<String>>>) -> bool{
         let mut definitive:bool = true;
@@ -170,6 +192,9 @@ impl GigList {
         vec
 
 
+    } 
+    pub fn add_gig(&mut self, g:Gig){
+        self.list.insert(g.name.clone(), g);
     }
 
     

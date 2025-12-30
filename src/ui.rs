@@ -1,5 +1,16 @@
-use crate::gig_lib::{self, Gig};
-use std::io::{self, Write};
+use std::io::{self, BufRead, Read, Stdin, Write};
+use crate::gig_lib::{self, Gig, GigEnvironment, GigSelectionScope, GigStatus};
+
+enum Command {
+    QUIT,
+    ADDTODO(Gig),
+    STATUSCHANGE(GigStatus, usize),
+    GETGIGS(GigSelectionScope),
+}
+
+pub struct Session {
+    gig_env: GigEnvironment,
+}
 
 fn clear_screen() {
     // Clear the entire screen and move cursor to top-left
@@ -7,6 +18,87 @@ fn clear_screen() {
     // Flush to ensure the escape codes are sent immediately
     io::stdout().flush().unwrap();
 }
+
+impl Session {
+    pub fn initilize(path:Option<String>)-> Self{
+        let gigs = match path {
+            Some(p) => match GigEnvironment::load(p.clone()) {
+                Ok(g) => g,
+                Err(_) => GigEnvironment::new_save(p, None),
+            },
+            None => GigEnvironment::new("".to_string(),None),
+        };
+        Self{gig_env:gigs}
+
+    } 
+    pub fn run(&mut self){
+        let mut running = true;
+        while running {
+            clear_screen();
+            self.gig_env.default_list.print_gig_list(GigSelectionScope::new_empty()); 
+            print!("░▒▓█🭬 ");
+            io::stdout().flush().unwrap();
+            let input = Self::get_input();
+            let mut args:Vec<&str> = input.split_whitespace().collect();
+            let mut command = args.pop();
+            match command {
+                Some(y) => match y {
+                    "q" => {
+                        let _ = self.gig_env.save().unwrap();
+                        return;
+                    },
+                    "add" => self.add_gig(args),
+                    "done" => todo!(),
+                    "rm" => todo!(),
+                    "save" => todo!(),
+                    _ => {}
+                    
+                },
+                None => {},
+            }
+            
+
+            
+        }
+    }
+    pub fn take_arg_or_input(&mut self, args:&mut Vec<&str>, question:&str) -> String{
+            match args.pop(){
+                Some(n) => n.to_string(),
+                None => {
+                    println!("{}",question);
+                    Self::get_input()
+                },
+            }
+
+    }
+    pub fn add_gig(&mut self,mut args:Vec<&str>){
+            let name:String = self.take_arg_or_input(&mut args,"name?");
+            let done:bool =match self.take_arg_or_input(&mut args,"done? X = yes, all other imput no").as_str(){
+                "x" => true,
+                "X" => true,
+                _ => false
+                
+            }; 
+            let mut g =Gig::new_empty();
+            g.name = name;
+            g.status = match done {
+                true => GigStatus::DONE,
+                false => GigStatus::TODO,
+            };
+            self.gig_env.default_list.add_gig(g);
+    }
+    pub fn get_input()-> String{
+        let mut buffer = String::new();
+        let stdin = io::stdin();
+        let mut handle = stdin.lock();
+        handle.read_line(&mut buffer);
+        buffer.trim().to_string()
+
+    }
+    
+}
+
+
 
 pub fn gig_vec_to_string(Gvec: Vec<&Gig>) -> String {
     let mut s = "".to_string();

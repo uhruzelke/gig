@@ -1,4 +1,4 @@
-use std::io::{self, BufRead, Read, Stdin, Write};
+use std::{io::{self, BufRead, Read, Stdin, Write}, option};
 use crate::gig_lib::{self, Gig, GigEnvironment, GigSelectionScope, GigStatus};
 
 enum Command {
@@ -40,26 +40,58 @@ impl Session {
             io::stdout().flush().unwrap();
             let input = Self::get_input();
             let mut args:Vec<&str> = input.split_whitespace().collect();
-            let mut command = args.pop();
-            match command {
-                Some(y) => match y {
-                    "q" => {
-                        let _ = self.gig_env.save().unwrap();
-                        return;
-                    },
-                    "add" => self.add_gig(args),
-                    "done" => todo!(),
-                    "rm" => todo!(),
-                    "save" => todo!(),
-                    _ => {}
-                    
-                },
-                None => {},
-            }
+            args.reverse();
+            running =self.interpret_command(&mut args);
+
             
 
             
         }
+    }
+    pub fn interpret_command(&mut self, args: &mut Vec<&str> ) -> bool{ // returns whether the thing is running
+            let command = args.pop();
+            let mut remove:Option<String> = None;
+            match command {
+                Some(y) => match y {
+                    "q" => {
+                        let _ = self.gig_env.save().unwrap();
+                        return false;
+                    },
+                    "add" => self.add_gig(args.to_vec()),
+                    "done" => {
+                        match self.find_gig(args) {
+                            Some(g) => g.0.status = GigStatus::DONE,
+                            None => {println!("gig not found" ); return false;},
+                        };
+                    },
+                    "rm" =>{
+                        match self.find_gig(args) {
+                            Some(g) => remove = Some(g.1),
+                            None => {println!("gig not found" ); return false;},
+                        };
+                    },
+                    "save" => {let _ = self.gig_env.save();},
+                    _ => {}
+                    
+                },
+                None => {},
+            };
+            match remove {
+                Some(r) =>{ let _ =self.gig_env.default_list.list.remove(&r);},
+                None => {},
+            };
+            return true;
+
+    }
+    pub fn find_gig(&mut self, args:&mut Vec<&str>)-> Option<(&mut Gig, String)>{ // returns the key and the reff for the list
+        let name = self.take_arg_or_input(args, "what gig do you want?");
+        println!(" looking for gig {}.", name);
+        let string = self.gig_env.default_list.find_gig_name(name);
+        match string.0 {
+            Some(g) => Some((g, string.1)), // its jsut the name
+            None => None, // lets try somthing else
+        }
+
     }
     pub fn take_arg_or_input(&mut self, args:&mut Vec<&str>, question:&str) -> String{
             match args.pop(){

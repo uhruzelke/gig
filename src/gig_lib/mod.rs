@@ -41,7 +41,7 @@ pub struct Gig {
 // the list has an optional name.
 #[derive(Default,Serialize,Deserialize)]
 pub struct GigList {
-    list: HashMap<String, Gig>,
+    pub list: HashMap<String, Gig>,
     name: Option<String>,
 }
 
@@ -239,6 +239,9 @@ impl GigList {
     }
     pub fn add_gig(&mut self, g: Gig) {
         self.list.insert(g.name.clone(), g);
+    }
+    pub fn find_gig_name(&mut self, name:String) -> (Option<&mut Gig>, String){
+        (self.list.get_mut(&name),name)
     }
 }
 

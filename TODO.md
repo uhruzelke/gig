@@ -1,0 +1,11 @@
+- [ ] GIG_LIB
+    - [ ] impl sorting
+    - [ ] impl get by number in order
+- [ ] UI
+    - [ ] ratatui?
+- [ ] TIMER
+    - [ ] decide where the mod.rs goes
+    - [ ] promodomo
+    - [ ] task thing
+- [ ] FILE SYSTEM
+    - [ ] conf file
